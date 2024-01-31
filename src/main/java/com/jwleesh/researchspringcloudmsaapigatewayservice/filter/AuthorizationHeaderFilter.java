@@ -15,6 +15,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.util.Set;
+
 @Component
 @Slf4j
 public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<AuthorizationHeaderFilter.Config> {
@@ -36,8 +38,16 @@ public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<Auth
                 return onError(exchange, "no authorization header", HttpStatus.UNAUTHORIZED);
             }
 
+            HttpHeaders headers = request.getHeaders();
+            Set<String> keys = headers.keySet();
+            log.info(">>>");
+            keys.stream().forEach(v -> {
+                log.info(v + "=" + request.getHeaders().get(v));
+            });
+            log.info("<<<");
+
             String authorizationHeader = request.getHeaders().get(HttpHeaders.AUTHORIZATION).get(0);
-            String jwt = authorizationHeader.replace("Bearer", "");
+            String jwt = authorizationHeader.replace("Bearer ", "");
 
             if (!isJwtValid(jwt)) {
                 return onError(exchange, "JWT token is not valid", HttpStatus.UNAUTHORIZED);
@@ -58,6 +68,7 @@ public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<Auth
                 .parseClaimsJws(jwt).getBody()
                 .getSubject();
         } catch (Exception ex) {
+            log.error(ex.getLocalizedMessage());
             returnValue = false;
         }
 
